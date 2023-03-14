@@ -1,0 +1,15 @@
+transformers==4.26.0
+numpy==1.24.1
+accelerate==0.15.0
+onnx==1.13.0
+coloredlogs
+packaging==23.0
+protobuf==3.20.3
+psutil==5.9.4
+sympy==1.11.1
+
+# Install diffusers
+# TODO: the change of diffusers need to be merged : 2666
+
+# Install onnxruntime-rocm or onnxruntime_training
+# Build onnxruntime-rocm from source or install lastest onnxruntime_training rocm nightly python package
