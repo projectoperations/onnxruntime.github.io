@@ -192,7 +192,16 @@ def get_image_filename_prefix(engine: str, model_name: str, batch_size: int, dis
 
 
 def run_ort_pipeline(
-    pipe, batch_size: int, image_filename_prefix: str, height, width, steps, num_prompts, batch_count, start_memory, enable_mem_measure
+    pipe,
+    batch_size: int,
+    image_filename_prefix: str,
+    height,
+    width,
+    steps,
+    num_prompts,
+    batch_count,
+    start_memory,
+    enable_mem_measure,
 ):
     from diffusers import OnnxStableDiffusionPipeline
 
@@ -251,7 +260,16 @@ def run_ort_pipeline(
 
 
 def run_torch_pipeline(
-    pipe, batch_size: int, image_filename_prefix: str, height, width, steps, num_prompts, batch_count, start_memory, enable_mem_measure
+    pipe,
+    batch_size: int,
+    image_filename_prefix: str,
+    height,
+    width,
+    steps,
+    num_prompts,
+    batch_count,
+    start_memory,
+    enable_mem_measure,
 ):
     import torch
 
@@ -262,8 +280,11 @@ def run_torch_pipeline(
         pipe("warm up", height, width, num_inference_steps=steps, num_images_per_prompt=batch_size)
 
     # Run warm up, and measure GPU memory of two runs (The first run has cuDNN algo search so it might need more memory)
-    first_run_memory = measure_gpu_memory(warmup, start_memory)
-    second_run_memory = measure_gpu_memory(warmup, start_memory)
+    first_run_memory = measure_gpu_memory(warmup, start_memory) if enable_mem_measure else -1
+    second_run_memory = measure_gpu_memory(warmup, start_memory) if enable_mem_measure else -1
+
+    if not enable_mem_measure:
+        warmup()
 
     torch.set_grad_enabled(False)
 
@@ -330,7 +351,16 @@ def run_ort(
 
     image_filename_prefix = get_image_filename_prefix("ort", model_name, batch_size, disable_safety_checker)
     result = run_ort_pipeline(
-        pipe, batch_size, image_filename_prefix, height, width, steps, num_prompts, batch_count, start_memory, enable_mem_measure
+        pipe,
+        batch_size,
+        image_filename_prefix,
+        height,
+        width,
+        steps,
+        num_prompts,
+        batch_count,
+        start_memory,
+        enable_mem_measure,
     )
 
     result.update(
@@ -375,11 +405,29 @@ def run_torch(
     if not enable_torch_compile:
         with torch.inference_mode():
             result = run_torch_pipeline(
-                pipe, batch_size, image_filename_prefix, height, width, steps, num_prompts, batch_count, start_memory, enable_mem_measure
+                pipe,
+                batch_size,
+                image_filename_prefix,
+                height,
+                width,
+                steps,
+                num_prompts,
+                batch_count,
+                start_memory,
+                enable_mem_measure,
             )
     else:
         result = run_torch_pipeline(
-            pipe, batch_size, image_filename_prefix, height, width, steps, num_prompts, batch_count, start_memory, enable_mem_measure
+            pipe,
+            batch_size,
+            image_filename_prefix,
+            height,
+            width,
+            steps,
+            num_prompts,
+            batch_count,
+            start_memory,
+            enable_mem_measure,
         )
 
     result.update(

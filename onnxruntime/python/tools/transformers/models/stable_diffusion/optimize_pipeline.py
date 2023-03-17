@@ -54,7 +54,7 @@ def optimize_sd_pipeline(
     float16: bool,
     force_fp32_ops: List[str],
     enable_runtime_optimization: bool,
-    args
+    args,
 ):
     """Optimize onnx models used in stable diffusion onnx pipeline and optionally convert to float16.
 
@@ -310,7 +310,7 @@ def main():
         args.float16,
         args.force_fp32_ops,
         args.inspect,
-        args
+        args,
     )
 
 
