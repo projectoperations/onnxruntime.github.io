@@ -278,6 +278,12 @@ namespace Microsoft.ML.OnnxRuntime
         public IntPtr UpdateDnnlProviderOptions;
         public IntPtr GetDnnlProviderOptionsAsString;
         public IntPtr ReleaseDnnlProviderOptions;
+        public IntPtr KernelInfo_GetNodeName;
+        public IntPtr KernelInfo_GetLogger;
+        public IntPtr KernelContext_GetLogger;
+        public IntPtr Logger_LogMessage;
+        public IntPtr Logger_GetLoggingSeverityLevel;
+        public IntPtr KernelInfoGetConstantInput_tensor;
         public IntPtr CastTypeInfoToOptionalTypeInfo;
         public IntPtr GetOptionalContainedTypeInfo;
     }
