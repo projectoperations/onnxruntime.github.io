@@ -51,6 +51,31 @@ namespace Microsoft.ML.OnnxRuntime
         }
 
         /// <summary>
+        /// This is a factory method that instantiates NamedOnnxValue.
+        /// It would contain a sequence of elements
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static NamedOnnxValue CreateFromSequence<T>(string name, IEnumerable<T> value)
+        {
+            return new NamedOnnxValue(name, value);
+        }
+
+        /// <summary>
+        /// This is a factory method that instantiates NamedOnnxValue.
+        /// </summary>
+        /// <typeparam name="K"></typeparam>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static NamedOnnxValue CreateFromMap<K,V>(string name, IDictionary<K,V> value)
+        {
+            return new NamedOnnxValue(name, value);
+        }
+
+        /// <summary>
         /// Exposes the name of the of the model input/output
         /// </summary>
         /// <value>name string</value>
@@ -94,7 +119,7 @@ namespace Microsoft.ML.OnnxRuntime
         }
 
         /// <summary>
-        /// Pin the underlying memory and create an instance of OrtValue
+        /// Pin the underlying memory and create an instance of OrtValue containing a tensor
         /// based on the pinned managed memory. The caller is responsible for Disposing
         /// both OrtValue and pinnedMemoryHandle
         /// </summary>

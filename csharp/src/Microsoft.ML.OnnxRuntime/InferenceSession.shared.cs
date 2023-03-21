@@ -32,9 +32,19 @@ namespace Microsoft.ML.OnnxRuntime
         private Dictionary<string, NodeMetadata> _inputMetadata;
 
         /// <summary>
+        /// Ordered list of input names
+        /// </summary>
+        private List<string> _inputNames;
+
+        /// <summary>
         /// Dictionary that represent output metadata
         /// </summary>
         private Dictionary<string, NodeMetadata> _outputMetadata;
+
+        /// <summary>
+        /// Ordered list of output names
+        /// </summary>
+        private List<string> _outputNames;
 
         /// <summary>
         /// Dictionary that represents overridableInitializers metadata
@@ -164,6 +174,11 @@ namespace Microsoft.ML.OnnxRuntime
         }
 
         /// <summary>
+        /// Ordered list of input names that can be accessed by index;
+        /// </summary>
+        public IReadOnlyList<string> InputNames { get { return _inputNames; } }
+
+        /// <summary>
         /// Metadata regarding the output nodes, keyed by output names
         /// </summary>
         public IReadOnlyDictionary<string, NodeMetadata> OutputMetadata
@@ -173,6 +188,11 @@ namespace Microsoft.ML.OnnxRuntime
                 return _outputMetadata;
             }
         }
+
+        /// <summary>
+        /// Ordered list of output names that can be accessed by index.
+        /// </summary>
+        public IReadOnlyList<string> OutputNames { get { return _outputNames; } }
 
         /// <summary>
         /// Metadata regarding the overridable initializers, keyed by node names
@@ -820,20 +840,20 @@ namespace Microsoft.ML.OnnxRuntime
             _nativeHandle = session;
             try
             {
-
                 // Initialize input/output metadata
-                _inputMetadata = new Dictionary<string, NodeMetadata>();
-                _outputMetadata = new Dictionary<string, NodeMetadata>();
-                _overridableInitializerMetadata = new Dictionary<string, NodeMetadata>();
 
                 // get input count
                 UIntPtr inputCount = UIntPtr.Zero;
                 NativeApiStatus.VerifySuccess(NativeMethods.OrtSessionGetInputCount(_nativeHandle, out inputCount));
 
                 // get all the input names and metadata
+                _inputMetadata = new Dictionary<string, NodeMetadata>((int)inputCount);
+                _inputNames = new List<string>((int)inputCount);
+
                 for (ulong i = 0; i < (ulong)inputCount; i++)
                 {
                     var iname = GetInputName(i);
+                    _inputNames.Add(iname);
                     _inputMetadata[iname] = GetInputMetadata(i);
                 }
                 // get output count
@@ -841,15 +861,21 @@ namespace Microsoft.ML.OnnxRuntime
                 NativeApiStatus.VerifySuccess(NativeMethods.OrtSessionGetOutputCount(_nativeHandle, out outputCount));
 
                 // get all the output names and metadata
+                _outputMetadata = new Dictionary<string, NodeMetadata>((int)outputCount);
+                _outputNames = new List<string>((int)outputCount);
+
                 for (ulong i = 0; i < (ulong)outputCount; i++)
                 {
-                    _outputMetadata[GetOutputName(i)] = GetOutputMetadata(i);
+                    var oname = GetOutputName(i);
+                    _outputNames.Add(oname);
+                    _outputMetadata[oname] = GetOutputMetadata(i);
                 }
 
                 // get overridable initializer count
                 UIntPtr initilaizerCount = UIntPtr.Zero;
                 NativeApiStatus.VerifySuccess(NativeMethods.OrtSessionGetOverridableInitializerCount(_nativeHandle, out initilaizerCount));
 
+                _overridableInitializerMetadata = new Dictionary<string, NodeMetadata>((int)initilaizerCount);
                 // get all the overridable initializer names and metadata
                 for (ulong i = 0; i < (ulong)initilaizerCount; i++)
                 {
@@ -861,7 +887,7 @@ namespace Microsoft.ML.OnnxRuntime
                                                                     out startTime));
                 _profilingStartTimeNs = (ulong)startTime;
             }
-            catch (OnnxRuntimeException)
+            catch (Exception)
             {
                 if (_nativeHandle != IntPtr.Zero)
                 {
