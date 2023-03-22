@@ -82,17 +82,17 @@ namespace Microsoft.ML.OnnxRuntime
     /// it does not support any other ortValues and caches Tensor properties.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal class NativeOnnxTensorMemory<T> : MemoryManager<T>, IOrtValueOwner
+    internal class OrtValueTensor<T> : MemoryManager<T>, IOrtValueOwner
     {
         private OrtValue _ortValue; // Disposable
-        private IntPtr _dataBufferPointer;    // pointer to mutable tensor data in native memory
-        private string[] _dataBufferAsString; // string tensor values copied into managed memory
+        private readonly IntPtr _dataBufferPointer;    // pointer to mutable tensor data in native memory
+        private readonly string[] _dataBufferAsString; // string tensor values copied into managed memory
 
         /// <summary>
         /// Constructs an instance and takes ownership of ortValue on success
         /// </summary>
         /// <param name="ortValue">ortValue that is a Tensor</param>
-        public NativeOnnxTensorMemory(OrtValue ortValue)
+        public OrtValueTensor(OrtValue ortValue)
         {
             Type type = null;
             int width = 0;
@@ -115,7 +115,7 @@ namespace Microsoft.ML.OnnxRuntime
 
                 if (typeof(T) != type)
                 {
-                    var message = String.Format("The NativeOnnxTensorMemory<T> type being instantiated for T = : {0} while supplied OrtValue contains T = {1}",
+                    var message = String.Format("The OrtValueTensor<T> type being instantiated for T = : {0} while supplied OrtValue contains T = {1}",
                         typeof(T), type);
                     throw new OnnxRuntimeException(ErrorCode.InvalidArgument, message);
                 }
@@ -214,7 +214,7 @@ namespace Microsoft.ML.OnnxRuntime
         public override Span<T> GetSpan()
         {
             if (IsDisposed)
-                throw new ObjectDisposedException(nameof(NativeOnnxTensorMemory<T>));
+                throw new ObjectDisposedException(nameof(OrtValueTensor<T>));
             Span<T> span = null;
             unsafe
             {
@@ -226,10 +226,10 @@ namespace Microsoft.ML.OnnxRuntime
         public Memory<String> GetBytesAsStringMemory()
         {
             if (IsDisposed)
-                throw new ObjectDisposedException(nameof(NativeOnnxTensorMemory<T>));
+                throw new ObjectDisposedException(nameof(OrtValueTensor<T>));
 
             if (typeof(T) != typeof(string))
-                throw new NotSupportedException(nameof(NativeOnnxTensorMemory<T>.GetBytesAsStringMemory) + ": T must be byte");
+                throw new NotSupportedException(nameof(OrtValueTensor<T>.GetBytesAsStringMemory) + ": T must be byte");
 
             return (_dataBufferAsString == null) ? new Memory<string>() : new Memory<string>(_dataBufferAsString);
         }

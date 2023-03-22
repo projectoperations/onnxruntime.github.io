@@ -31,11 +31,26 @@ namespace Microsoft.ML.OnnxRuntime
         /// </summary>
         /// <param name="name">input/output name</param>
         /// <param name="value">Object that may be a tensor, Dictionary, IList</param>
+        [Obsolete("This the constructor with valueType or static factory methods")]
         protected NamedOnnxValue(string name, Object value)
         {
             _name = name;
             _value = value;
+            ValueType = OnnxValueType.ONNX_TYPE_UNKNOWN;
         }
+
+        protected NamedOnnxValue(string name, Object value, OnnxValueType valueType)
+        {
+            _name = name;
+            _value = value;
+            ValueType = valueType;
+        }
+
+        /// <summary>
+        /// Onnx Value Type if known. In general, NamedOnnxValue is able to contain
+        /// arbitrary objects.
+        /// </summary>
+        public OnnxValueType ValueType { get; }
 
         /// <summary>
         /// This is a factory method that instantiates NamedOnnxValue
@@ -47,7 +62,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// <returns></returns>
         public static NamedOnnxValue CreateFromTensor<T>(string name, Tensor<T> value)
         {
-            return new NamedOnnxValue(name, value);
+            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_TENSOR);
         }
 
         /// <summary>
@@ -59,7 +74,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// <returns></returns>
         public static NamedOnnxValue CreateFromSequence<T>(string name, IEnumerable<T> value)
         {
-            return new NamedOnnxValue(name, value);
+            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_SEQUENCE);
         }
 
         /// <summary>
@@ -72,7 +87,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// <returns></returns>
         public static NamedOnnxValue CreateFromMap<K,V>(string name, IDictionary<K,V> value)
         {
-            return new NamedOnnxValue(name, value);
+            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_MAP);
         }
 
         /// <summary>

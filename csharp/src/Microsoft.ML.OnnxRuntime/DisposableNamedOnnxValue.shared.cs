@@ -77,17 +77,11 @@ namespace Microsoft.ML.OnnxRuntime
         /// Typically, this is an output OrtValue that holds native memory where Tensor is mapped but may also be
         /// other things that would need to be disposed by this instance depending on how IOrtValueOwner is implemented.</param>
         private DisposableNamedOnnxValue(string name, Object value, OnnxValueType onnxValueType, TensorElementType elementType, IOrtValueOwner ortValueHolder)
-            : base(name, value)
+            : base(name, value, onnxValueType)
         {
             _ortValueHolder = ortValueHolder;
-            ValueType = onnxValueType;
             ElementType = elementType;
         }
-
-        /// <summary>
-        /// Returns OnnxValueType
-        /// </summary>
-        public OnnxValueType ValueType { get; }
 
         /// <summary>
         /// Only valid if ValueType is Tensor
@@ -214,11 +208,11 @@ namespace Microsoft.ML.OnnxRuntime
                     break;
 
                 case OnnxValueType.ONNX_TYPE_SEQUENCE:
-                    result = DisposableNamedOnnxValueFromSequence(name, ortValue, allocator);
+                    result = FromSequence(name, ortValue, allocator);
                     break;
 
                 case OnnxValueType.ONNX_TYPE_MAP:
-                    result = DisposableNamedOnnxValueFromNativeMap(name, ortValue, allocator);
+                    result = FromNativeMap(name, ortValue, allocator);
                     break;
                 default:
                     throw new NotSupportedException("OnnxValueType : " + onnxValueType + " is not supported");
@@ -240,7 +234,7 @@ namespace Microsoft.ML.OnnxRuntime
         {
             if (typeof(T) == typeof(string))
             {
-                var nativeTensorWrapper = new NativeOnnxTensorMemory<string>(ortValue);
+                var nativeTensorWrapper = new OrtValueTensor<string>(ortValue);
                 try
                 {
                     var dt = new DenseTensor<string>(nativeTensorWrapper.GetBytesAsStringMemory(), nativeTensorWrapper.Dimensions);
@@ -253,7 +247,7 @@ namespace Microsoft.ML.OnnxRuntime
             }
             else
             {
-                NativeOnnxTensorMemory<T> nativeTensorWrapper = new NativeOnnxTensorMemory<T>(ortValue);
+                OrtValueTensor<T> nativeTensorWrapper = new OrtValueTensor<T>(ortValue);
                 try
                 {
                     DenseTensor<T> dt = new DenseTensor<T>(nativeTensorWrapper.Memory, nativeTensorWrapper.Dimensions);
@@ -275,7 +269,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// <param name="ortValueSequence">ortValueElement that has native sequence</param>
         /// <param name="allocator"> used allocator</param>
         /// <returns>DisposableNamedOnnxValue</returns>
-        private static DisposableNamedOnnxValue DisposableNamedOnnxValueFromSequence(string name, OrtValue ortValueSequence, OrtAllocator allocator)
+        private static DisposableNamedOnnxValue FromSequence(string name, OrtValue ortValueSequence, OrtAllocator allocator)
         {
             DisposableNamedOnnxValue result = null;
             IntPtr count;
@@ -314,7 +308,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// This function does not take ownership of the map as it we copy all keys an values into a dictionary. We let the caller dispose of it</param>
         /// <param name="allocator"></param>
         /// <returns>DisposableNamedOnnxValue</returns>
-        private static DisposableNamedOnnxValue DisposableNamedOnnxValueFromNativeMap(string name, OrtValue ortValueMap, OrtAllocator allocator)
+        private static DisposableNamedOnnxValue FromNativeMap(string name, OrtValue ortValueMap, OrtAllocator allocator)
         {
             DisposableNamedOnnxValue result = null;
             // Map processing is currently not recursing. It is assumed to contain
@@ -384,14 +378,14 @@ namespace Microsoft.ML.OnnxRuntime
         private static DisposableNamedOnnxValue DisposableNamedOnnxValueFromNativeMapElements<K, V>(string name,
             OrtValue ortValueTensorKeys, OrtValue ortValueTensorValues)
         {
-            using (var nativeTensorWrapperValues = new NativeOnnxTensorMemory<V>(ortValueTensorValues))
+            using (var nativeTensorWrapperValues = new OrtValueTensor<V>(ortValueTensorValues))
             {
                 var denseTensorValues = new DenseTensor<V>(nativeTensorWrapperValues.Memory, nativeTensorWrapperValues.Dimensions);
 
                 if (typeof(K) == typeof(string))
                 {
                     var map = new Dictionary<string, V>();
-                    using (var nativeTensorWrapper = new NativeOnnxTensorMemory<string>(ortValueTensorKeys))
+                    using (var nativeTensorWrapper = new OrtValueTensor<string>(ortValueTensorKeys))
                     {
                         var denseTensorKeys = new DenseTensor<string>(nativeTensorWrapper.GetBytesAsStringMemory(), nativeTensorWrapper.Dimensions);
                         for (var i = 0; i < denseTensorKeys.Length; i++)
@@ -404,7 +398,7 @@ namespace Microsoft.ML.OnnxRuntime
                 else
                 {
                     var map = new Dictionary<K, V>();
-                    using (var nativeTensorWrapper = new NativeOnnxTensorMemory<K>(ortValueTensorKeys))
+                    using (var nativeTensorWrapper = new OrtValueTensor<K>(ortValueTensorKeys))
                     {
                         var denseTensorKeys = new DenseTensor<K>(nativeTensorWrapper.Memory, nativeTensorWrapper.Dimensions);
                         for (var i = 0; i < denseTensorKeys.Length; i++)
