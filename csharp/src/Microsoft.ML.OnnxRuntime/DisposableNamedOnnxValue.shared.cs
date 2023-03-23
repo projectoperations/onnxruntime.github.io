@@ -77,7 +77,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// Typically, this is an output OrtValue that holds native memory where Tensor is mapped but may also be
         /// other things that would need to be disposed by this instance depending on how IOrtValueOwner is implemented.</param>
         private DisposableNamedOnnxValue(string name, Object value, OnnxValueType onnxValueType, TensorElementType elementType, IOrtValueOwner ortValueHolder)
-            : base(name, value, onnxValueType)
+            : base(name, value, onnxValueType, null)
         {
             _ortValueHolder = ortValueHolder;
             ElementType = elementType;

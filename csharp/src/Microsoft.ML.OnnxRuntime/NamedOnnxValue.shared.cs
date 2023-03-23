@@ -39,11 +39,12 @@ namespace Microsoft.ML.OnnxRuntime
             ValueType = OnnxValueType.ONNX_TYPE_UNKNOWN;
         }
 
-        protected NamedOnnxValue(string name, Object value, OnnxValueType valueType)
+        protected NamedOnnxValue(string name, Object value, OnnxValueType valueType, NodeMetadata metadata)
         {
             _name = name;
             _value = value;
             ValueType = valueType;
+            Metadata = metadata;
         }
 
         /// <summary>
@@ -53,16 +54,22 @@ namespace Microsoft.ML.OnnxRuntime
         public OnnxValueType ValueType { get; }
 
         /// <summary>
+        /// Node metadata. Present when this is not a DisposableNamedOnnxValue
+        /// </summary>
+        public NodeMetadata Metadata { get; set; }
+
+        /// <summary>
         /// This is a factory method that instantiates NamedOnnxValue
         /// and associated name with an instance of a Tensor<typeparamref name="T"/>
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="name">name</param>
         /// <param name="value">Tensor<typeparamref name="T"/></param>
+        /// <param name="metadata">node metadata, necessary if this is used for input/output<typeparamref name="T"/></param>
         /// <returns></returns>
-        public static NamedOnnxValue CreateFromTensor<T>(string name, Tensor<T> value)
+        public static NamedOnnxValue CreateFromTensor<T>(string name, Tensor<T> value, NodeMetadata metadata)
         {
-            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_TENSOR);
+            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_TENSOR, metadata);
         }
 
         /// <summary>
@@ -72,9 +79,9 @@ namespace Microsoft.ML.OnnxRuntime
         /// <param name="name"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static NamedOnnxValue CreateFromSequence<T>(string name, IEnumerable<T> value)
+        public static NamedOnnxValue CreateFromSequence<T>(string name, IEnumerable<T> value, NodeMetadata metadata)
         {
-            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_SEQUENCE);
+            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_SEQUENCE, metadata);
         }
 
         /// <summary>
@@ -85,10 +92,10 @@ namespace Microsoft.ML.OnnxRuntime
         /// <param name="name"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static NamedOnnxValue CreateFromMap<K, V>(string name, IDictionary<K, V> value)
-        {
-            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_MAP);
-        }
+        //public static NamedOnnxValue CreateFromMap<K, V>(string name, IDictionary<K, V> value)
+        //{
+        //    return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_MAP);
+        //}
 
         /// <summary>
         /// Exposes the name of the of the model input/output
