@@ -26,7 +26,7 @@ namespace Microsoft.ML.OnnxRuntime.InferenceSample
             {
                 // note: DenseTensor takes a copy of the provided data
                 var tensor = new DenseTensor<float>(inputTensor, inputMeta[name].Dimensions);
-                inputData.Add(NamedOnnxValue.CreateFromTensor<float>(name, tensor, inputMeta[name]));
+                inputData.Add(NamedOnnxValue.CreateFromTensor<float>(name, tensor));
             }
         }
 

@@ -77,7 +77,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// Typically, this is an output OrtValue that holds native memory where Tensor is mapped but may also be
         /// other things that would need to be disposed by this instance depending on how IOrtValueOwner is implemented.</param>
         private DisposableNamedOnnxValue(string name, Object value, OnnxValueType onnxValueType, TensorElementType elementType, IOrtValueOwner ortValueHolder)
-            : base(name, value, onnxValueType, null)
+            : base(name, value, onnxValueType)
         {
             _ortValueHolder = ortValueHolder;
             ElementType = elementType;
@@ -140,46 +140,46 @@ namespace Microsoft.ML.OnnxRuntime
             switch (elemType)
             {
                 case TensorElementType.Float:
-                    result = DisposableNamedOnnxValueFromNativeTensor<float>(name, ortValue);
+                    result = FromNativeTensor<float>(name, ortValue);
                     break;
                 case TensorElementType.Double:
-                    result = DisposableNamedOnnxValueFromNativeTensor<double>(name, ortValue);
+                    result = FromNativeTensor<double>(name, ortValue);
                     break;
                 case TensorElementType.Int16:
-                    result = DisposableNamedOnnxValueFromNativeTensor<short>(name, ortValue);
+                    result = FromNativeTensor<short>(name, ortValue);
                     break;
                 case TensorElementType.UInt16:
-                    result = DisposableNamedOnnxValueFromNativeTensor<ushort>(name, ortValue);
+                    result = FromNativeTensor<ushort>(name, ortValue);
                     break;
                 case TensorElementType.Int32:
-                    result = DisposableNamedOnnxValueFromNativeTensor<int>(name, ortValue);
+                    result = FromNativeTensor<int>(name, ortValue);
                     break;
                 case TensorElementType.UInt32:
-                    result = DisposableNamedOnnxValueFromNativeTensor<uint>(name, ortValue);
+                    result = FromNativeTensor<uint>(name, ortValue);
                     break;
                 case TensorElementType.Int64:
-                    result = DisposableNamedOnnxValueFromNativeTensor<long>(name, ortValue);
+                    result = FromNativeTensor<long>(name, ortValue);
                     break;
                 case TensorElementType.UInt64:
-                    result = DisposableNamedOnnxValueFromNativeTensor<ulong>(name, ortValue);
+                    result = FromNativeTensor<ulong>(name, ortValue);
                     break;
                 case TensorElementType.UInt8:
-                    result = DisposableNamedOnnxValueFromNativeTensor<byte>(name, ortValue);
+                    result = FromNativeTensor<byte>(name, ortValue);
                     break;
                 case TensorElementType.Int8:
-                    result = DisposableNamedOnnxValueFromNativeTensor<sbyte>(name, ortValue);
+                    result = FromNativeTensor<sbyte>(name, ortValue);
                     break;
                 case TensorElementType.String:
-                    result = DisposableNamedOnnxValueFromNativeTensor<string>(name, ortValue);
+                    result = FromNativeTensor<string>(name, ortValue);
                     break;
                 case TensorElementType.Bool:
-                    result = DisposableNamedOnnxValueFromNativeTensor<bool>(name, ortValue);
+                    result = FromNativeTensor<bool>(name, ortValue);
                     break;
                 case TensorElementType.Float16:
-                    result = DisposableNamedOnnxValueFromNativeTensor<Float16>(name, ortValue);
+                    result = FromNativeTensor<Float16>(name, ortValue);
                     break;
                 case TensorElementType.BFloat16:
-                    result = DisposableNamedOnnxValueFromNativeTensor<BFloat16>(name, ortValue);
+                    result = FromNativeTensor<BFloat16>(name, ortValue);
                     break;
                 default:
                     throw new NotSupportedException("Tensor of element type: " + elemType + " is not supported");
@@ -230,7 +230,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// <param name="name">name of the output</param>
         /// <param name="ortValue">native tensor</param>
         /// <returns>DisposableNamedOnnxValue instance</returns>
-        private static DisposableNamedOnnxValue DisposableNamedOnnxValueFromNativeTensor<T>(string name, OrtValue ortValue)
+        private static DisposableNamedOnnxValue FromNativeTensor<T>(string name, OrtValue ortValue)
         {
             if (typeof(T) == typeof(string))
             {

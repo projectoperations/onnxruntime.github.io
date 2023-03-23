@@ -9,9 +9,29 @@ using System.Collections.Generic;
 namespace Microsoft.ML.OnnxRuntime
 {
     /// <summary>
-    /// The class associates a name with an Object. Currently it supports Tensor<T>
-    /// as possible objects. The name of the class is a misnomer, it does not hold any
-    /// Onnx values.
+    /// The class associates a name with an Object. 
+    /// The name of the class is a misnomer, it does not hold any Onnx values,
+    /// just managed representation of them.
+    /// 
+    /// The class is currently used as both inputs and outputs. Because it is non-
+    /// disposable, it can not hold on to any native objects.
+    /// 
+    /// When used as input, we temporarily create OrtValues that map managed inputs
+    /// directly. Thus we are able to avoid copying.
+    /// 
+    /// For outputs, tensor buffers works the same as input, providing it matches
+    /// the expected output shape. For other types (maps and sequences, we create a copy of the data).
+    /// This is because, the class is not Disposable and it is a public interface, thus it can not own
+    /// the underlying OrtValues that must be destroyed before Run() returns.
+    /// 
+    /// To avoid data copying on output, use DisposableNamedOnnxValue class that is returned from Run() methods.
+    /// This provides access to the native memory and avoids copying.
+    /// 
+    /// It is a recursive structure that may contain Tensors (base case)
+    /// Other sequences and maps. Although the OnnxValueType is exposed,
+    /// the caller is supposed to know the actual data type contained.
+    /// For that one will need to consult model metadata.
+    /// 
     /// </summary>
     public class NamedOnnxValue
     {
@@ -26,8 +46,7 @@ namespace Microsoft.ML.OnnxRuntime
 
         /// <summary>
         /// Constructs an instance of NamedOnnxValue and represents
-        /// a model input to an inference session. It also represents a modle output
-        /// when serves as a base for DisposablenamedOnnxvalue
+        /// a model input to an inference session.
         /// </summary>
         /// <param name="name">input/output name</param>
         /// <param name="value">Object that may be a tensor, Dictionary, IList</param>
@@ -39,12 +58,11 @@ namespace Microsoft.ML.OnnxRuntime
             ValueType = OnnxValueType.ONNX_TYPE_UNKNOWN;
         }
 
-        protected NamedOnnxValue(string name, Object value, OnnxValueType valueType, NodeMetadata metadata)
+        protected NamedOnnxValue(string name, Object value, OnnxValueType valueType)
         {
             _name = name;
             _value = value;
             ValueType = valueType;
-            Metadata = metadata;
         }
 
         /// <summary>
@@ -52,11 +70,6 @@ namespace Microsoft.ML.OnnxRuntime
         /// arbitrary objects.
         /// </summary>
         public OnnxValueType ValueType { get; }
-
-        /// <summary>
-        /// Node metadata. Present when this is not a DisposableNamedOnnxValue
-        /// </summary>
-        public NodeMetadata Metadata { get; set; }
 
         /// <summary>
         /// This is a factory method that instantiates NamedOnnxValue
@@ -67,9 +80,9 @@ namespace Microsoft.ML.OnnxRuntime
         /// <param name="value">Tensor<typeparamref name="T"/></param>
         /// <param name="metadata">node metadata, necessary if this is used for input/output<typeparamref name="T"/></param>
         /// <returns></returns>
-        public static NamedOnnxValue CreateFromTensor<T>(string name, Tensor<T> value, NodeMetadata metadata)
+        public static NamedOnnxValue CreateFromTensor<T>(string name, Tensor<T> value)
         {
-            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_TENSOR, metadata);
+            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_TENSOR);
         }
 
         /// <summary>
@@ -79,9 +92,9 @@ namespace Microsoft.ML.OnnxRuntime
         /// <param name="name"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static NamedOnnxValue CreateFromSequence<T>(string name, IEnumerable<T> value, NodeMetadata metadata)
+        public static NamedOnnxValue CreateFromSequence<T>(string name, IEnumerable<T> value)
         {
-            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_SEQUENCE, metadata);
+            return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_SEQUENCE);
         }
 
         /// <summary>
