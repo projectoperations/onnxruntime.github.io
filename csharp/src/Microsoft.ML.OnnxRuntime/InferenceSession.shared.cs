@@ -716,11 +716,10 @@ namespace Microsoft.ML.OnnxRuntime
             for (int inputIndex = 0; inputIndex < values.Count; ++inputIndex)
             {
                 var input = values.ElementAt(inputIndex);
-                MemoryHandle? memHandle;
-                var ortValue = input.ToOrtValue(out memHandle);
-                if (memHandle.HasValue)
+                var ortValue = input.ToOrtValue(out IDisposable memHolder);
+                if (memHolder != null)
                 {
-                    cleanupList.Add(memHandle);
+                    cleanupList.Add(memHolder);
                 }
                 cleanupList.Add(ortValue);
                 result[inputIndex] = ortValue.Handle;

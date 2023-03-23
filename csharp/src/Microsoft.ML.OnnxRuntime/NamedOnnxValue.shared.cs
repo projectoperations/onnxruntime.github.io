@@ -85,7 +85,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// <param name="name"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static NamedOnnxValue CreateFromMap<K,V>(string name, IDictionary<K,V> value)
+        public static NamedOnnxValue CreateFromMap<K, V>(string name, IDictionary<K, V> value)
         {
             return new NamedOnnxValue(name, value, OnnxValueType.ONNX_TYPE_MAP);
         }
@@ -140,9 +140,12 @@ namespace Microsoft.ML.OnnxRuntime
         /// </summary>
         /// <param name="pinnedMemoryHandle">dispose after returned OrtValus is disposed</param>
         /// <returns>an instance of OrtValue. The lifespan of OrtValue must overlap pinnedMemoryHandle</returns>
-        internal virtual OrtValue ToOrtValue(out MemoryHandle? pinnedMemoryHandle)
+        internal virtual OrtValue ToOrtValue(out IDisposable memoryOwner)
         {
-            return OrtValue.CreateFromTensorObject(_value, out pinnedMemoryHandle, out TensorElementType elementType);
+            var ortValue = OrtValue.CreateFromTensorObject(_value, out MemoryHandle? memoryHandle,
+                out _);
+            memoryOwner = memoryHandle;
+            return ortValue;
         }
 
         // may expose different types of getters in future

@@ -98,7 +98,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// </summary>
         /// <param name="pinnedMemoryHandle">always set to null</param>
         /// <returns>An instance of OrtValue that does not own underlying memory</returns>
-        internal override OrtValue ToOrtValue(out MemoryHandle? pinnedMemoryHandle)
+        internal override OrtValue ToOrtValue(out IDisposable memoryHolder)
         {
             if(_ortValueHolder == null)
             {
@@ -106,7 +106,7 @@ namespace Microsoft.ML.OnnxRuntime
             }
             // PinnedMemoryHandle holds the default value as DisposableNamedOnnxValue
             // doesn't hold any managed buffer (that needs to be pinned)
-            pinnedMemoryHandle = null;
+            memoryHolder = null;
             // Return non-owning instance of OrtValue
             return _ortValueHolder.Value;
         }
@@ -348,10 +348,10 @@ namespace Microsoft.ML.OnnxRuntime
                 switch (elemType)
                 {
                     case TensorElementType.Int64:
-                        result = DisposableNamedOnnxValueFromNativeMapElements<Int64, float>(string.Empty, ortValueKeys, ortValueValues);
+                        result = FromNativeMapElements<Int64, float>(string.Empty, ortValueKeys, ortValueValues);
                         break;
                     case TensorElementType.String:
-                        result = DisposableNamedOnnxValueFromNativeMapElements<string, float>(string.Empty, ortValueKeys, ortValueValues);
+                        result = FromNativeMapElements<string, float>(string.Empty, ortValueKeys, ortValueValues);
                         break;
                     default:
                         throw new NotSupportedException("Map of element type: " + elemType + " is not supported");
@@ -375,7 +375,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// <param name="ortValueTensorKeys">tensor with map keys.</param>
         /// <param name="nativeOnnxValueValues">tensor with map values</param>
         /// <returns>instance of DisposableNamedOnnxValue with Dictionary</returns>
-        private static DisposableNamedOnnxValue DisposableNamedOnnxValueFromNativeMapElements<K, V>(string name,
+        private static DisposableNamedOnnxValue FromNativeMapElements<K, V>(string name,
             OrtValue ortValueTensorKeys, OrtValue ortValueTensorValues)
         {
             using (var nativeTensorWrapperValues = new OrtValueTensor<V>(ortValueTensorValues))
