@@ -230,8 +230,9 @@ static std::vector<ITestCase*> GetAllTestCases() {
   allDisabledTests.insert(std::begin(x86DisabledTests), std::end(x86DisabledTests));
 #endif
 // Bad onnx test output caused by previously wrong SAME_UPPER/SAME_LOWER for ConvTranspose
-allDisabledTests.insert(ORT_TSTR("cntk_simple_seg"));
-
+  allDisabledTests.insert(ORT_TSTR("cntk_simple_seg"));
+  // OrtApis::GetTensorTypeAndShape Argument is not a tensor
+  allDisabledTests.insert(ORT_TSTR("ResNet_preproc_opset18_zoo_CPU"));
 
   WINML_EXPECT_NO_THROW(LoadTests(dataDirs, whitelistedTestCases, TestTolerances(1e-3, 1e-3, {}, {}),
                                   allDisabledTests,

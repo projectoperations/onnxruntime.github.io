@@ -124,6 +124,11 @@ TEST_P(ModelTest, Run) {
     SkipTest(" dnnl doesn't support opset 10");
     return;
   }
+  
+  if (model_info->GetONNXOpSetVersion() == 18 && provider_name == "dnnl") {
+    SkipTest(" dnnl doesn't support opset 18");
+    return;
+  }
 
   if (model_info->HasDomain(ONNX_NAMESPACE::AI_ONNX_TRAINING_DOMAIN) ||
       model_info->HasDomain(ONNX_NAMESPACE::AI_ONNX_PREVIEW_TRAINING_DOMAIN)) {
