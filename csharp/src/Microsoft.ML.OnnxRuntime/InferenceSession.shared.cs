@@ -1270,7 +1270,7 @@ namespace Microsoft.ML.OnnxRuntime
             ElementTypeInfo = TensorBase.GetElementTypeInfo(elementType);
             if (ElementTypeInfo == null)
             {
-                throw new ArgumentException("Unregistered TensorElementType value of: " + elementType.ToString());
+                throw new OnnxRuntimeException(ErrorCode.InvalidArgument, "Unregistered TensorElementType value of: " + elementType.ToString());
             }
             ElementDataType = elementType;
             Dimensions = dimensions;
@@ -1421,7 +1421,7 @@ namespace Microsoft.ML.OnnxRuntime
         {
             if (!IsTensor)
             {
-                throw new InvalidOperationException("OnnxValueType must either be a tensor or sparse tensor");
+                throw new OnnxRuntimeException(ErrorCode.Fail, "OnnxValueType must either be a tensor or sparse tensor");
             }
         }
 
@@ -1434,7 +1434,7 @@ namespace Microsoft.ML.OnnxRuntime
         {
             if (OnnxValueType != OnnxValueType.ONNX_TYPE_MAP)
             {
-                throw new InvalidOperationException("Instance does not contain Map metadata");
+                throw new OnnxRuntimeException(ErrorCode.Fail, "Instance does not contain Map metadata");
             }
             return _metadata as MapMetadata;
         }
@@ -1448,7 +1448,7 @@ namespace Microsoft.ML.OnnxRuntime
         {
             if (OnnxValueType != OnnxValueType.ONNX_TYPE_SEQUENCE)
             {
-                throw new InvalidOperationException("Instance does not contain Sequence metadata");
+                throw new OnnxRuntimeException(ErrorCode.Fail, "Instance does not contain Sequence metadata");
             }
             return _metadata as SequenceMetadata;
         }
@@ -1464,7 +1464,7 @@ namespace Microsoft.ML.OnnxRuntime
         {
             if (OnnxValueType != OnnxValueType.ONNX_TYPE_OPTIONAL)
             {
-                throw new InvalidOperationException("Instance does not contain Optional metadata");
+                throw new OnnxRuntimeException(ErrorCode.Fail, "Instance does not contain Optional metadata");
             }
             return _metadata as OptionalMetadata;
         }

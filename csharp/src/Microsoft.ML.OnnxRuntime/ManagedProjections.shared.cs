@@ -5,13 +5,16 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Microsoft.ML.OnnxRuntime
 {
     /// <summary>
-    /// The class helps to feed the Sequence as an inference input
-    /// It takes NamedOnnxValue. The NamedOnnxValue can be a tensor, sequence or map.
+    /// The class helps to feed the NamedOnnxValue as an inference input.
+    /// it projects managed classes to OrtValues so they can be consumed
+    /// by the native onnxruntime library.
+    /// The NamedOnnxValue can be a tensor, sequence or map.
     /// For recursive structures, create nested NamedOnnxValue instances.
     /// For example, a sequence instance would contain a list of NamedOnnxValue instances
     /// that in turn may represent tensors or other ONNX values.
@@ -29,16 +32,17 @@ namespace Microsoft.ML.OnnxRuntime
                     $"NamedOnnxValue: {namedOnnxValue.Name} has value type: {namedOnnxValue.ValueType} expected: {metadata.OnnxValueType}");
             }
 
-            var disposables = new DisposableList<IDisposable>();
+            int requiredCapacity = 32;
+            var disposables = new DisposableList<IDisposable>(requiredCapacity);
             try
             {
                 switch (namedOnnxValue.ValueType)
                 {
                     case OnnxValueType.ONNX_TYPE_TENSOR:
-                        _ortValue = CreateTensorMapping(namedOnnxValue, metadata, disposables);
+                        _ortValue = CreateTensorProjection(namedOnnxValue, metadata, disposables);
                         break;
                     case OnnxValueType.ONNX_TYPE_SEQUENCE:
-                        _ortValue = CreateSequence(namedOnnxValue, metadata, disposables);
+                        _ortValue = CreateSequenceProjection(namedOnnxValue, metadata, disposables);
                         break;
                 }
             }
@@ -50,23 +54,33 @@ namespace Microsoft.ML.OnnxRuntime
             _disposables = disposables;
         }
 
-        private OrtValue CreateSequence(NamedOnnxValue namedOnnxValue, NodeMetadata metadata, DisposableList<IDisposable> disposables)
+        /// <summary>
+        /// The function creates OrtValue objects for each element of the sequence
+        /// and then creates an OrtValue for the whole sequence.
+        /// </summary>
+        /// <param name="namedOnnxValue">NamedOnnxValue containing a IEnumeralbe<NameOnnValue></param>
+        /// <param name="metadata">sequence metadata</param>
+        /// <param name="disposables">cleanup list</param>
+        /// <returns></returns>
+        /// <exception cref="OnnxRuntimeException"></exception>
+        private OrtValue CreateSequenceProjection(NamedOnnxValue namedOnnxValue, NodeMetadata metadata, DisposableList<IDisposable> disposables)
         {
             OrtValue result = null;
             var elementMeta = metadata.AsSequenceMetadata().ElementMeta;
             var elementOnnxValue = elementMeta.OnnxValueType;
             var seqContainer = namedOnnxValue.AsEnumerable<NamedOnnxValue>();
 
-            if(seqContainer is null)
+            if (seqContainer is null)
             {
                 throw new OnnxRuntimeException(ErrorCode.InvalidArgument,
                                                $"NamedOnnxValue: {namedOnnxValue.Name} sequence does not contain NamedOnnxValue elements");
             }
 
+            // Record all the ortValues belonging to the sequence locally
             var sequenceOrtValues = new List<OrtValue>();
             foreach (var element in seqContainer)
             {
-                if(elementOnnxValue != element.ValueType)
+                if (elementOnnxValue != element.ValueType)
                 {
                     throw new OnnxRuntimeException(ErrorCode.InvalidArgument,
                         $"NamedOnnxValue: {namedOnnxValue.Name} sequence element expected to be {elementOnnxValue}, received {element.ValueType}");
@@ -74,11 +88,11 @@ namespace Microsoft.ML.OnnxRuntime
 
                 if (element.ValueType == OnnxValueType.ONNX_TYPE_TENSOR)
                 {
-                    sequenceOrtValues.Add(CreateTensorMapping(element, elementMeta, disposables));
+                    sequenceOrtValues.Add(CreateTensorProjection(element, elementMeta, disposables));
                 }
                 else if (element.ValueType == OnnxValueType.ONNX_TYPE_SEQUENCE)
                 {
-                    sequenceOrtValues.Add(CreateSequence(element, elementMeta, disposables));
+                    sequenceOrtValues.Add(CreateSequenceProjection(element, elementMeta, disposables));
                 }
                 //else if (element.ValueType == OnnxValueType.ONNX_TYPE_MAP)
                 //{
@@ -93,68 +107,44 @@ namespace Microsoft.ML.OnnxRuntime
                 }
             }
 
-            var ortValPtrs = sequenceOrtValues.ConvertAll(v => v.Handle).ToArray();
+            IntPtr[] ortValHandles = new IntPtr[sequenceOrtValues.Count];
+            for(int i = 0; i < sequenceOrtValues.Count; i++)
+            {
+                ortValHandles[i] = sequenceOrtValues[i].Handle;
+            }
+
+            using (var memHandle = new Memory<IntPtr>(ortValHandles).Pin())
+            {
+                NativeApiStatus.VerifySuccess(NativeMethods.OrtCreateValue(ortValHandles,
+                    (UIntPtr)sequenceOrtValues.Count, (IntPtr)OnnxValueType.ONNX_TYPE_SEQUENCE, out IntPtr sequenceHandle));
+                result = new OrtValue(sequenceHandle);
+            }
 
             return result;
         }
 
-        private OrtValue CreateTensorMapping(NamedOnnxValue node, NodeMetadata elementMeta, DisposableList<IDisposable> disposables)
+        private OrtValue CreateMapProjection(NamedOnnxValue node, NodeMetadata elementMeta, DisposableList<IDisposable> disposables)
         {
             OrtValue result = null;
-            switch (elementMeta.ElementDataType)
-            {
-                case TensorElementType.Float:
-                    result = FromManagedTensor<float>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.Double:
-                    result = FromManagedTensor<double>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.Int16:
-                    result = FromManagedTensor<short>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.UInt16:
-                    result = FromManagedTensor<ushort>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.Int32:
-                    result = FromManagedTensor<int>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.UInt32:
-                    result = FromManagedTensor<uint>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.Int64:
-                    result = FromManagedTensor<long>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.UInt64:
-                    result = FromManagedTensor<ulong>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.UInt8:
-                    result = FromManagedTensor<byte>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.Int8:
-                    result = FromManagedTensor<sbyte>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.Bool:
-                    result = FromManagedTensor<bool>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.Float16:
-                    result = FromManagedTensor<Float16>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.BFloat16:
-                    result = FromManagedTensor<BFloat16>(node, elementMeta, disposables);
-                    break;
-                case TensorElementType.String:
-                    result = FromManagedTensor<string>(node, elementMeta, disposables);
-                    break;
-                default:
-                    throw new NotSupportedException("Tensor of element type: " + elementMeta.ElementDataType + " is not supported");
-            }
-            return result;
+            var mapMeta = elementMeta.AsMapMetadata();
+            Debug.Assert(mapMeta != null);
+            // Let's figure out the representation of the map inside NamedOnnxValue\
+            // and how we query in a non-generic code.
+
         }
 
-        private OrtValue FromManagedTensor<T>(NamedOnnxValue namedOnnxValue, NodeMetadata metadata,
-            DisposableList<IDisposable> disposables)
+
+        /// <summary>
+        /// This pins memory that is contained within DenseTensor.
+        /// </summary>
+        /// <param name="node">NodeOnnxValue containing DenseTensor</param>
+        /// <param name="elementMeta"></param>
+        /// <param name="disposables">cleanup list</param>
+        /// <returns></returns>
+        /// <exception cref="OnnxRuntimeException"></exception>
+        private OrtValue CreateTensorProjection(NamedOnnxValue node, NodeMetadata elementMeta, DisposableList<IDisposable> disposables)
         {
-            var ortValue = OrtValue.CreateFromTensorObject(namedOnnxValue.Value,
+            var ortValue = OrtValue.CreateFromTensorObject(node.Value,
                 out MemoryHandle? memoryHandle, out TensorElementType elementType);
             disposables.Add(ortValue);
 
@@ -163,15 +153,14 @@ namespace Microsoft.ML.OnnxRuntime
                 disposables.Add(memoryHandle);
             }
 
-            if (elementType != metadata.ElementDataType)
+            if (elementType != elementMeta.ElementDataType)
             {
                 throw new OnnxRuntimeException(ErrorCode.InvalidArgument,
-                    $"Tensor element data type discovered: {elementType} metadata expected: {metadata.ElementDataType}");
+                    $"Tensor element data type discovered: {elementType} metadata expected: {elementMeta.ElementDataType}");
             }
 
             return ortValue;
         }
-
     }
 }
 
