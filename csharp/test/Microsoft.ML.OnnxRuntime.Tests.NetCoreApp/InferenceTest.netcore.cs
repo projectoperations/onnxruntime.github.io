@@ -358,7 +358,7 @@ namespace Microsoft.ML.OnnxRuntime.Tests
                 { "test_optional_get_element_optional_sequence", "C# API doesn't support optional input"},
                 { "test_optional_has_element_tensor_input", "C# API doesn't support optional input"},
                 { "test_optional_has_element_optional_input", "C# API doesn't support optional input"},
-                { "ResNet-preproc", "C# API doesn't support the input type"},
+                { "ResNet-preproc", "C# API doesn't support the input type"}
             };
 
             // The following models fails on nocontribops win CI
