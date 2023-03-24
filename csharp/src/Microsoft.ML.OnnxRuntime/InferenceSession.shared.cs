@@ -1538,6 +1538,9 @@ namespace Microsoft.ML.OnnxRuntime
             }
         }
 
+        /// <summary>
+        /// Convinience method to check for string
+        /// </summary>
         public bool IsString
         {
             get
